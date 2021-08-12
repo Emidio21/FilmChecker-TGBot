@@ -54,7 +54,7 @@ const myCommands = [
 //On voice message download audio file, send it to IBM Cloud to get speechToText result, delete audio file and send first 3 film found.
 bot.on('voice', ctx => {
   ctx.telegram.getFileLink(ctx.update.message.voice.file_id).then((url) => {
-    const localFile = __dirname + '/temp/voices/'+ctx.update.message.voice.file_id+'.oga'
+    const localFile = ctx.update.message.voice.file_id+'.oga'
     download(url.href, localFile, (err) => {
       if (err) console.log(err);
       const params = {
