@@ -1,0 +1,7 @@
+
+*.env
+ibm-credentials.env
+
+temp
+
+node_modules
