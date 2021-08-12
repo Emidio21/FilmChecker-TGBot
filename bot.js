@@ -37,10 +37,15 @@ function download(url, dest, callback) {
 const constructFilmMessage = (film) =>{
   let message = {photo:null, message:''};
   let imgUrl = 'https://image.tmdb.org/t/p/w300'
+
   if(film.poster_path) message.photo = imgUrl + film.poster_path
   else if (film.backdrop_path) message.photo = imgUrl + film.backdrop_path
 
-  message.message = `*Title:*  ${film.title}`
+  message.message =
+  `
+  *${film.title || film.name}*
+
+  `
 
   return message;
 }
