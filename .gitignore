@@ -1,7 +1,4 @@
 
-*.env
-ibm-credentials.env
-
-temp
+.env
 
 node_modules
