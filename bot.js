@@ -5,10 +5,13 @@ var https = require('https');
 var fs = require('fs');
 
 const SpeechToTextV1 = require('ibm-watson/speech-to-text/v1');
+const { IamAuthenticator } =require('ibm-watson/auth');
 
 const speechToText = new SpeechToTextV1({
-  version: '2021-08-11'
+  authenticator: new IamAuthenticator({ apikey: process.env.SPEECH_TO_TEXT_APIKEY}),
+  version: '2021-08-12'
 });
+speechToText.setServiceUrl(process.env.SPEECH_TO_TEXT_URL);
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const PORT = process.env.PORT || 8000;
