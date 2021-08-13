@@ -1,14 +1,24 @@
 require("dotenv").config();
-const { Telegraf }= require('telegraf');
-const axios = require('axios');
-var https = require('https');
-var fs = require('fs');
+const {
+  Telegraf,
+  Scenes,
+  session
+} = require('telegraf');
+
+const https = require('https');
+const fs = require('fs');
+const {download, searchFilms} = require('./functions.js')
+
 
 const SpeechToTextV1 = require('ibm-watson/speech-to-text/v1');
-const { IamAuthenticator } =require('ibm-watson/auth');
+const {
+  IamAuthenticator
+} = require('ibm-watson/auth');
 
 const speechToText = new SpeechToTextV1({
-  authenticator: new IamAuthenticator({ apikey: process.env.SPEECH_TO_TEXT_APIKEY}),
+  authenticator: new IamAuthenticator({
+    apikey: process.env.SPEECH_TO_TEXT_APIKEY
+  }),
   version: '2021-08-12'
 });
 speechToText.setServiceUrl(process.env.SPEECH_TO_TEXT_URL);
@@ -19,86 +29,87 @@ const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
 
 const bot = new Telegraf(BOT_TOKEN);
 
-function download(url, dest, callback) {
-  var file = fs.createWriteStream(dest);
-  var request = https.get(url, function (response) {
-    response.pipe(file);
-    file.on('finish', function () {
-      file.close(callback); // close() is async, call callback after close completes.
-    });
-    file.on('error', function (err) {
-      fs.unlink(dest); // Delete the file async. (But we don't check the result)
-      if (callback)
-        callback(err.message);
-    });
-  });
-}
 
-const constructFilmMessage = (film) =>{
-  let message = {photo:null, message:''};
-  let imgUrl = 'https://image.tmdb.org/t/p/w300'
-
-  if(film.poster_path) message.photo = imgUrl + film.poster_path
-  else if (film.backdrop_path) message.photo = imgUrl + film.backdrop_path
-
-  message.message =
-  `
-  *${film.title || film.name}*
-
-  `
-
-  return message;
-}
-
-
-const myCommands = [
-  {command:'help', description: 'Lista comandi'},
-];
+const myCommands = [{
+  command: 'help',
+  description: 'Lista comandi'
+}, ];
 
 
 //On voice message download audio file, send it to IBM Cloud to get speechToText result, delete audio file and send first 3 film found.
 bot.on('voice', ctx => {
   ctx.telegram.getFileLink(ctx.update.message.voice.file_id).then((url) => {
-    const localFile = ctx.update.message.voice.file_id+'.oga'
+    const localFile = ctx.update.message.voice.file_id + '.oga'
     download(url.href, localFile, (err) => {
       if (err) console.log(err);
       const params = {
         contentType: 'audio/ogg',
         audio: fs.createReadStream(localFile),
-        model:'it-IT_BroadbandModel'
-        };
-        speechToText.recognize(params)
+        model: 'it-IT_BroadbandModel'
+      };
+      speechToText.recognize(params)
         .then(response => {
           const titoloFilm = JSON.stringify(response.result.results[0].alternatives[0].transcript)
 
-          ctx.reply('cercando i films corrispondenti a: ' + titoloFilm)
+          ctx.reply('cercando i films corrispondenti a: ' + titoloFilm);
+          searchFilms(titoloFilm).then(messages => {
 
-          axios.get('https://api-filmchecker.herokuapp.com/multi_search/'+titoloFilm+'/1')
-          .then(res => {
-            const films = res.data.results.slice(0, 3);
-
-            films.map(film => {
-              const message = constructFilmMessage(film)
-
-              ctx.replyWithPhoto({url: message.photo}, {caption: message.message, parse_mode:'markdown'}, {});
+            messages.map(message => {
+              ctx.replyWithPhoto({
+                url: message.photo
+              }, {
+                caption: message.message,
+                parse_mode: 'markdown'
+              }, {});
             })
-          }, err =>{
-            console.log(err);
-          })
 
           fs.unlink(localFile, (err) => {
-          if (err) {
-            console.error(err)
-            return
-          }})
+            if (err) {
+              console.error(err)
+              return
+            }
+          })
         })
-        .catch(err => {
-          console.log(err);
-        });
-
       });
     })
+  })
+})
 
+
+/*SCENA PER CERCARE UN FILM VIA TESTO*/
+const searchScene = new Scenes.BaseScene('SEARCH_SCENE');
+
+searchScene.enter((ctx) => {
+  ctx.reply('Qual è il film che cerchi?');
+});
+searchScene.leave((ctx) => ctx.reply(ctx.session.myData.setted ? 'Cerco' : 'Errore'));
+searchScene.command('cancel', ctx => ctx.scene.leave());
+searchScene.on('text', (ctx) => {
+  const titoloFilm = ctx.message.text;
+
+  searchFilms(titoloFilm).then(messages => {
+    messages.map(message => {
+      ctx.replyWithPhoto({
+        url: message.photo
+      }, {
+        caption: message.message,
+        parse_mode: 'markdown'
+      }, {});
+    })
+
+    ctx.session.myData.setted = true;
+    ctx.scene.leave();
+  })
+});
+searchScene.on('voice', (ctx) => ctx.reply('Mandami il titolo testuale per favore'));
+
+const stage = new Scenes.Stage([searchScene]);
+bot.use(session());
+bot.use(stage.middleware());
+
+bot.command('search', (ctx) => {
+  ctx.session.myData = {setted:false};
+  ctx.scene.enter('SEARCH_SCENE');
 })
 
 // bot.launch();
