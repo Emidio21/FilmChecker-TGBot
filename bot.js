@@ -59,7 +59,7 @@ bot.on('voice', ctx => {
                 url: message.photo
               }, {
                 caption: message.message,
-                parse_mode: 'markdown'
+                parse_mode: message.parse_mode
               }, {});
             })
 
@@ -112,15 +112,15 @@ bot.command('search', (ctx) => {
   ctx.scene.enter('SEARCH_SCENE');
 })
 
-// bot.launch();
-
-// Start webhook via launch method (preferred)
-bot.launch({
-  webhook: {
-    domain: URL,
-    port: PORT,
-  }
-});
+if(process.env.DEV) bot.launch();
+else
+  // Start webhook via launch method (preferred)
+  bot.launch({
+    webhook: {
+      domain: URL,
+      port: PORT,
+    }
+  });
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))

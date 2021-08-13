@@ -20,7 +20,8 @@ function download(url, dest, callback) {
 const constructFilmMessage = (film) => {
   let message = {
     photo: null,
-    message: ''
+    message: '',
+    parse_mode:'markdown'
   };
   let imgUrl = 'https://image.tmdb.org/t/p/w300'
 
@@ -29,8 +30,7 @@ const constructFilmMessage = (film) => {
 
   message.message =
     `
-  🎬 *${film.title || film.name}*
-
+  🎬 *${film.title || film.name}* (${film.release_date ? film.release_date.split('-')[0] : film.first_air_date.split('-')[0]})
   `
 
   return message;
