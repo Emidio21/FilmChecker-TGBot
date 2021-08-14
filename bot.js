@@ -30,10 +30,24 @@ const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
 const bot = new Telegraf(BOT_TOKEN);
 
 
-const myCommands = [{
-  command: 'help',
-  description: 'Lista comandi'
-}, ];
+const myCommands = [
+  {command: 'help', description: 'Lista comandi'},
+  {command: 'search', description: 'Cerca un film usando il titolo, restituisce i primi 3 film trovati'},
+ ];
+
+bot.telegram.setMyCommands(myCommands);
+
+bot.help(ctx => {
+  bot.telegram.getMyCommands()
+  .then(commands => {
+    let message='Puoi inviare un messaggio vocale con il titolo del film da cercare\n\noppure uno dei seguenti comandi: \n\n';
+    commands.map(command => {
+      message += '/' + command.command + ' ' + command.description + "\n";
+    });
+    ctx.replyWithMarkdownV2(message);
+  })
+  .catch(err => console.log(err));
+});
 
 bot.command('status', ctx => {
   ctx.reply('Sono vivo');
