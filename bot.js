@@ -35,6 +35,10 @@ const myCommands = [{
   description: 'Lista comandi'
 }, ];
 
+bot.command('status', ctx => {
+  ctx.reply('Sono vivo');
+})
+
 
 //On voice message download audio file, send it to IBM Cloud to get speechToText result, delete audio file and send first 3 film found.
 bot.on('voice', ctx => {
@@ -53,7 +57,7 @@ bot.on('voice', ctx => {
 
           ctx.reply('cercando i films corrispondenti a: ' + titoloFilm);
           searchFilms(titoloFilm).then(messages => {
-
+            console.log(messages);
             messages.map(message => {
               ctx.replyWithPhoto({
                 url: message.photo

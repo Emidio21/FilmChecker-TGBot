@@ -17,7 +17,7 @@ function download(url, dest, callback) {
   });
 }
 
-const constructFilmMessage = (film) => {
+const constructFilmMessage = (film, providers) => {
   let message = {
     photo: null,
     message: '',
@@ -31,6 +31,10 @@ const constructFilmMessage = (film) => {
   message.message =
     `
   🎬 *${film.title || film.name}* (${film.release_date ? film.release_date.split('-')[0] : film.first_air_date.split('-')[0]})
+
+${(film.overview.length > 300) ? film.overview.substr(0, 300) + '...' : film.overview}
+
+In Italia disponibile su: ${providers && providers.filter(c => c[0]==='IT').map(p =>  p[1].flatrate && Object.values(p[1].flatrate).map(provider =>{return provider.provider_name +' |'}))}
   `
 
   return message;
@@ -40,12 +44,19 @@ const searchFilms = async (titoloFilm) => {
   try {
     const res = await axios.get('https://api-filmchecker.herokuapp.com/multi_search/' + titoloFilm + '/1');
     const films = res.data.results.slice(0, 3);
-    let messages = []
+    var messages = []
 
-    films.map(film =>  {
-      messages.push(constructFilmMessage(film))
+    const promises = films.map(async film =>  {
+      try {
+        const res = await axios.get('https://api-filmchecker.herokuapp.com/provider/'+ film.media_type +'/' + film.id);
+        const providers = Object.entries(res.data.results)
+        const message = await constructFilmMessage(film, providers);
+         return message
+      } catch(e){
+        console.log(e);
+      }
     })
-
+    messages = await Promise.all(promises);
     return messages;
   } catch (e) {
     console.log(e);
