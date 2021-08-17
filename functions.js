@@ -1,9 +1,11 @@
+require('dotenv').config();
 const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
 
 // Function to download a file in local
-function download(url, dest, callback) {
+function download(path, dest, callback) {
+  const url = 'https://api.telegram.org/file/bot' + process.env.BOT_TOKEN + '/'+path;
   var file = fs.createWriteStream(dest);
   var request = https.get(url, function(response) {
     response.pipe(file);
@@ -50,8 +52,7 @@ _${(film.overview.length > 300) ? ''+film.overview.substr(0, 300) + '...' : film
 ${italyProvidersFlat && '💰 ' + italyProvidersFlat}
 ${italyProvidersAds && '🆓 ' + italyProvidersAds}
   `
-// ${providers && providers.filter(c => c[0]==='IT').map(p =>  p[1].flatrate && Object.values(p[1].flatrate).map(provider =>{return '*' +provider.provider_name +'* |'}))}
-// ${providers && providers.filter(c => c[0]==='IT').map(p =>  p[1].ads && Object.values(p[1].ads).map(provider =>{return 'c'+provider.provider_name +'c |'}))}
+
 
   return message;
 }
