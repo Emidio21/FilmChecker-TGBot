@@ -48,7 +48,7 @@ bot.api.setMyCommands(myCommands);
 
 const replyWithHelp = async (ctx) =>{
   try {
-    const commands = await ctx.api.getMyCommands
+    const commands = await ctx.api.getMyCommands()
     let message='Puoi inviare un messaggio vocale con il titolo del film da cercare\n\noppure uno dei seguenti comandi: \n\n';
     commands.map(command => {
       message += '/' + command.command + ' ' + command.description + "\n";
