@@ -25,7 +25,17 @@ const PORT = process.env.PORT || 8000;
 const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
 
 // const bot = new Telegraf(BOT_TOKEN);
-const bot = new Bot(BOT_TOKEN);
+if (process.env.BOT_TOKEN == null) throw Error("BOT_TOKEN is missing.");
+export const bot = new Bot(`${process.env.BOT_TOKEN}`,{
+  botInfo: {
+    id: 1939345611,
+    is_bot: true,
+    first_name: "Dove Guardarlo?",
+    username: "filmchecker_bot",
+    can_join_groups: true,
+    can_read_all_group_messages: false,
+    supports_inline_queries: false,
+  },});
 // Use session
 bot.use(session({ initial: () => ({ step: "idle" }) }));
 
@@ -114,7 +124,6 @@ router.route('text', async (ctx, next) => {
   }
   ctx.session.title = titoloFilm;
   const messages = await searchFilms(titoloFilm);
-  console.log(messages);
   messages?.length>0 ? messages.map(message => {
    ctx.replyWithPhoto(message.photo, {caption:message.message, parse_mode:message.parse_mode});
  }) : ctx.reply('Nessun film trovato per '+ titoloFilm);
