@@ -25,7 +25,9 @@ const constructFilmMessage = (film, providers) => {
   let message = {
     photo: null,
     message: '',
-    parse_mode:'markdown'
+    parse_mode:'markdown',
+    id:film.id,
+    type:film.media_type
   };
   let imgUrl = 'https://image.tmdb.org/t/p/w300'
 
@@ -48,10 +50,11 @@ const constructFilmMessage = (film, providers) => {
 
 _${(film.overview.length > 300) ? ''+film.overview.substr(0, 300) + '...' : film.overview}_
 
-🇮🇹 In Italia disponibile su:
+${italyProviders ? '🇮🇹 In Italia disponibile su:' : '🇮🇹 In Italia non disponibile'}
 ${italyProvidersFlat && '💰 ' + italyProvidersFlat}
 ${italyProvidersAds && '🆓 ' + italyProvidersAds}
   `
+
 
 
   return message;

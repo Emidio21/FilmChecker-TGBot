@@ -1,10 +1,13 @@
 require("dotenv").config();
 
-const { Bot, session, SessionFlavor} = require('grammy');
+const { Bot, session, SessionFlavor, InlineKeyboard} = require('grammy');
 const { Router } = require("@grammyjs/router");
 
 const fs = require('fs');
+const axios = require('axios');
 const {download, searchFilms} = require('./functions.js')
+
+const {flag, name} = require('country-emoji');
 
 
 const SpeechToTextV1 = require('ibm-watson/speech-to-text/v1');
@@ -36,6 +39,7 @@ const bot = new Bot(`${process.env.BOT_TOKEN}`,{
     can_read_all_group_messages: false,
     supports_inline_queries: false,
   },});
+
 // Use session
 bot.use(session({ initial: () => ({ step: "idle" }) }));
 
@@ -59,6 +63,14 @@ const replyWithHelp = async (ctx) =>{
   }
 }
 
+const replyWithFilms = async (ctx, titoloFilm) => {
+  const messages = await searchFilms(titoloFilm);
+  messages?.length>0 ? messages.map(message => {
+    const inlineKeyboard = new InlineKeyboard().text('🌐 Nel resto del mondo?', message.id+' '+message.type+' '+ctx.msg.chat.id).row().url('ℹ️ Più info','www.doveguardarlo.it');
+    ctx.replyWithPhoto(message.photo, {caption:message.message, parse_mode:message.parse_mode, reply_markup: inlineKeyboard});
+  }) : ctx.reply('Nessun film trovato per '+ titoloFilm);
+}
+
 bot.command('help', ctx => replyWithHelp(ctx));
 
 bot.command('start', async ctx => {
@@ -69,7 +81,6 @@ bot.command('start', async ctx => {
 bot.command('status', ctx => {
   ctx.reply('Sono vivo');
 })
-
 
 //On voice message download audio file, send it to IBM Cloud to get speechToText result, delete audio file and send first 3 film found.
 bot.on('message:voice', async ctx => {
@@ -92,10 +103,7 @@ bot.on('message:voice', async ctx => {
       })
       const titoloFilm = JSON.stringify(response.result.results[0].alternatives[0].transcript)
       ctx.reply('cercando i films corrispondenti a: ' + titoloFilm);
-      const messages = await searchFilms(titoloFilm);
-      messages?.length>0 ? messages.map(message => {
-        ctx.replyWithPhoto(message.photo, {caption:message.message, parse_mode:message.parse_mode});
-      }) : ctx.reply('Nessun film trovato per '+ titoloFilm);
+      replyWithFilms(ctx, titoloFilm)
     })
   } catch(e){
     console.log(e);
@@ -110,10 +118,7 @@ bot.command('cerca', async ctx =>{
 
   if (titoloFilm !== undefined) {
    // Information already provided!
-   const messages = await searchFilms(titoloFilm);
-   messages?.length>0 ? messages.map(message => {
-    ctx.replyWithPhoto(message.photo, {caption:message.message, parse_mode:message.parse_mode});
-   }) : ctx.reply('Nessun film trovato per '+ titoloFilm);
+   replyWithFilms(ctx, titoloFilm)
  } else {
    // Missing information, enter router-based form
    ctx.session.step = "text";
@@ -131,17 +136,43 @@ router.route('text', async (ctx, next) => {
     return;
   }
   ctx.session.title = titoloFilm;
-  const messages = await searchFilms(titoloFilm);
-  messages?.length>0 ? messages.map(message => {
-   ctx.replyWithPhoto(message.photo, {caption:message.message, parse_mode:message.parse_mode});
- }) : ctx.reply('Nessun film trovato per '+ titoloFilm);
+  replyWithFilms(ctx, titoloFilm)
+
   ctx.session.step = "idle";
   ctx.session.title = undefined;
 });
 
 bot.use(router);
 
+// CALLBACK QUERY
+bot.on("callback_query:data", async (ctx) => {
+  const id = ctx.callbackQuery.data.split(' ')[0];
+  const type = ctx.callbackQuery.data.split(' ')[1];
+  const msgId = ctx.callbackQuery.data.split(' ')[2];
+
+  const res = await axios.get('https://api-filmchecker.herokuapp.com/provider/'+ type +'/' + id);
+  const providers = Object.entries(res.data.results)
+  const otherCountry = providers && providers.filter(c => c[0]!=='IT')
+  let newMessage = ctx.update.callback_query.message.caption + '\n'
+  newMessage += otherCountry ? '\n🌐 Nel resto del mondo: 🌐\n' : '🌐 Non disponibile nel resto del mondo: 🌐\n'
+  otherCountry.map(country => {
+    (country[1]?.flatrate || country[1]?.ads) ? newMessage += '\n\n' + flag(country[0]) + name(country[0]) + ': \n' : '\n'
+    country[1]?.flatrate ? newMessage += '💰: ' : '';
+    country[1]?.flatrate && country[1].flatrate.map(provider =>{ newMessage +=  '*' + provider.provider_name+'* | '});
+    country[1]?.ads ? newMessage += '\n🆓: ' : '';
+    country[1]?.ads && country[1].ads.map(provider =>{newMessage += '*' + provider.provider_name+'* | '});
+  });
+  newMessage = newMessage.substr(0,1020)+'...'
+  const inlineKeyboard = new InlineKeyboard().url('ℹ️ Più info','www.doveguardarlo.it');
+  await ctx.api.raw.editMessageCaption({chat_id:msgId, message_id:ctx.update.callback_query.message.message_id ,caption:newMessage,parse_mode:'markdown', reply_markup:inlineKeyboard})
+  await ctx.answerCallbackQuery(); // remove loading animation
+});
+
 bot.catch(err => console.log(err));
+
+if (process.env.DEV) {
+  bot.start();
+}
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
