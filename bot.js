@@ -46,17 +46,25 @@ const myCommands = [
 
 bot.api.setMyCommands(myCommands);
 
-bot.command('help', ctx => {
-  bot.api.getMyCommands()
-  .then(commands => {
+const replyWithHelp = async (ctx) =>{
+  try {
+    const commands = await ctx.api.getMyCommands
     let message='Puoi inviare un messaggio vocale con il titolo del film da cercare\n\noppure uno dei seguenti comandi: \n\n';
     commands.map(command => {
       message += '/' + command.command + ' ' + command.description + "\n";
     });
     ctx.reply(message);
-  })
-  .catch(err => console.log(err));
-});
+  } catch (err){
+    console.log(err);
+  }
+}
+
+bot.command('help', ctx => replyWithHelp(ctx));
+
+bot.command('start', async ctx => {
+  ctx.reply('Benvenuto! ');
+  replyWithHelp(ctx);
+})
 
 bot.command('status', ctx => {
   ctx.reply('Sono vivo');
