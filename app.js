@@ -9,10 +9,10 @@ const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
 const app = express();
 
 app.use(express.json());
-app.use('/'+BOT_TOKEN, webhookCallback(bot, "express"));
+app.use(webhookCallback(bot, "express"));
 
 
 app.listen(PORT, async () => {
   // Make sure it is `https` not `http`!
-  await bot.api.setWebhook('https://'+ URL + '/' + BOT_TOKEN);
+  await bot.api.setWebhook(URL + '/' + BOT_TOKEN);
 });
