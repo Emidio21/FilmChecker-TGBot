@@ -1,6 +1,6 @@
-import express from "express";
-import { webhookCallback } from "grammy";
-import { bot } from "./bot.js";
+const express = require( "express");
+const { webhookCallback } = require("grammy");
+const { bot } = require("./bot.js");
 
 const domain = String(process.env.DOMAIN);
 const secretPath = String(process.env.BOT_TOKEN);

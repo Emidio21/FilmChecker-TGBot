@@ -26,7 +26,7 @@ const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
 
 // const bot = new Telegraf(BOT_TOKEN);
 if (process.env.BOT_TOKEN == null) throw Error("BOT_TOKEN is missing.");
-export const bot = new Bot(`${process.env.BOT_TOKEN}`,{
+module.export const bot = new Bot(`${process.env.BOT_TOKEN}`,{
   botInfo: {
     id: 1939345611,
     is_bot: true,
