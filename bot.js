@@ -66,7 +66,7 @@ const replyWithHelp = async (ctx) =>{
 const replyWithFilms = async (ctx, titoloFilm) => {
   const messages = await searchFilms(titoloFilm);
   messages?.length>0 ? messages.map(message => {
-    const inlineKeyboard = new InlineKeyboard().text('🌐 Nel resto del mondo?', message.id+' '+message.type+' '+ctx.msg.chat.id).row().url('ℹ️ Più info','www.doveguardarlo.it');
+    const inlineKeyboard = new InlineKeyboard().text('🌐 Nel resto del mondo?', message.id+' '+message.type+' '+ctx.msg.chat.id).row().url('ℹ️ Più info','www.doveguardarlo.it/?id='+message.id+'&type='+message.type);
     ctx.replyWithPhoto(message.photo, {caption:message.message, parse_mode:message.parse_mode, reply_markup: inlineKeyboard});
   }) : ctx.reply('Nessun film trovato per '+ titoloFilm);
 }
@@ -163,7 +163,7 @@ bot.on("callback_query:data", async (ctx) => {
     country[1]?.ads && country[1].ads.map(provider =>{newMessage += '*' + provider.provider_name+'* | '});
   });
   newMessage = newMessage.substr(0,1020)+'...'
-  const inlineKeyboard = new InlineKeyboard().url('ℹ️ Più info','www.doveguardarlo.it');
+  const inlineKeyboard = new InlineKeyboard().url('ℹ️ Più info','www.doveguardarlo.it/?id='+message.id+'&type='+message.type);
   await ctx.api.raw.editMessageCaption({chat_id:msgId, message_id:ctx.update.callback_query.message.message_id ,caption:newMessage,parse_mode:'markdown', reply_markup:inlineKeyboard})
   await ctx.answerCallbackQuery(); // remove loading animation
 });
