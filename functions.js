@@ -50,12 +50,10 @@ const constructFilmMessage = (film, providers) => {
 
 _${(film.overview.length > 300) ? ''+film.overview.substr(0, 300) + '...' : film.overview}_
 
-${italyProviders ? '🇮🇹 In Italia disponibile su:' : '🇮🇹 In Italia non disponibile'}
+${(italyProvidersFlat || italyProvidersAds) ? '🇮🇹 In Italia disponibile su:' : '🇮🇹 In Italia non disponibile'}
 ${italyProvidersFlat && '💰 ' + italyProvidersFlat}
 ${italyProvidersAds && '🆓 ' + italyProvidersAds}
   `
-
-
 
   return message;
 }
