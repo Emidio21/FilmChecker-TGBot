@@ -1,10 +1,7 @@
 const express = require( "express");
 const { webhookCallback } = require("grammy");
 const { bot } = require("./bot.js");
-
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const PORT = process.env.PORT || 8000;
-const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
+const {BOT_TOKEN, PORT, URL} = require('./constants');
 
 const app = express();
 

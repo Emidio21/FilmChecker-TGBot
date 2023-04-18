@@ -2,6 +2,7 @@ require('dotenv').config();
 const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
+const { API_URL } = require('./constants');
 
 // Function to download a file in local
 function download(path, dest, callback) {
@@ -61,13 +62,13 @@ ${italyProvidersAds && '🆓 ' + italyProvidersAds}
 // function to search movie using the title
 const searchFilms = async (titoloFilm) => {
   try {
-    const res = await axios.get('https://api-filmchecker.herokuapp.com/multi_search/' + titoloFilm + '/1');
+    const res = await axios.get(API_URL + 'multi_search/' + titoloFilm + '/1');
     const films = res.data.results.slice(0, 3);
     var messages = []
 
     const promises = films.map(async film =>  {
       try {
-        const res = await axios.get('https://api-filmchecker.herokuapp.com/provider/'+ film.media_type +'/' + film.id);
+        const res = await axios.get(API_URL + 'provider/'+ film.media_type +'/' + film.id);
         const providers = Object.entries(res.data.results)
         const message = await constructFilmMessage(film, providers);
          return message

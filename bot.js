@@ -15,6 +15,8 @@ const {
   IamAuthenticator
 } = require('ibm-watson/auth');
 
+const { API_URL, PORT } = require('./constants');
+
 const speechToText = new SpeechToTextV1({
   authenticator: new IamAuthenticator({
     apikey: process.env.SPEECH_TO_TEXT_APIKEY
@@ -22,10 +24,6 @@ const speechToText = new SpeechToTextV1({
   version: '2021-08-12'
 });
 speechToText.setServiceUrl(process.env.SPEECH_TO_TEXT_URL);
-
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const PORT = process.env.PORT || 8000;
-const URL = process.env.URL || 'https://bot-filmchecker.herokuapp.com';
 
 // const bot = new Telegraf(BOT_TOKEN);
 if (process.env.BOT_TOKEN == null) throw Error("BOT_TOKEN is missing.");
@@ -42,6 +40,18 @@ const bot = new Bot(`${process.env.BOT_TOKEN}`,{
 
 // Use session
 bot.use(session({ initial: () => ({ step: "idle" }) }));
+
+
+/** LOG REQUEST */
+async function logger(
+  ctx,
+  next // is an alias for: () => Promise<void>
+){
+  console.log(new Date().toLocaleString(), ' - Richiesta ricevuta da:', ctx.from.username,'[', ctx.from.id,'] - messaggio:', ctx.msg?.text);
+  await next();
+}
+
+bot.use(logger);
 
 const myCommands = [
   {command: 'help', description: 'Lista comandi'},
@@ -149,13 +159,13 @@ router.route('text', async (ctx, next) => {
 bot.use(router);
 
 // CALLBACK QUERY
-bot.on("callback_query:data", async (ctx) => {
+bot.on("callback_query:data", async (ctx) => {  
   const id = ctx.callbackQuery.data.split(' ')[0];
   const type = ctx.callbackQuery.data.split(' ')[1];
   const msgId = ctx.callbackQuery.data.split(' ')[2];
 
   try{
-    const res = await axios.get('https://api-filmchecker.herokuapp.com/provider/'+ type +'/' + id);
+    const res = await axios.get(API_URL + 'provider/'+ type +'/' + id);
     const providers = Object.entries(res.data.results)
     const otherCountry = providers && providers.filter(c => c[0]!=='IT')
     let newMessage = ctx.update.callback_query.message.caption + '\n';
@@ -176,10 +186,22 @@ bot.on("callback_query:data", async (ctx) => {
   }
 });
 
-bot.catch(err => console.log(err));
+bot.catch((err) => {
+  const ctx = err.ctx;
+  console.error(`Error while handling update ${ctx.update.update_id}:`);
+  const e = err.error;
+  if (e instanceof GrammyError) {
+    console.error("Error in request:", e.description);
+  } else if (e instanceof HttpError) {
+    console.error("Could not contact Telegram:", e);
+  } else {
+    console.error("Unknown error:", e);
+  }
+});
 
 if (process.env.DEV) {
   bot.start();
+  console.log('Bot started!')
 }
 
 // Enable graceful stop
